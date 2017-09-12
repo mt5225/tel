@@ -84,7 +84,7 @@ def save_to_db(payload):
     ''' save message to db
     '''
     try:
-        conn = sqlite3.connect('./telfire.db')
+        conn = sqlite3.connect('telfire.db')
         cur = conn.cursor()
         for item in payload:
             record = (item['occurrences'], item['msg'], item['repeater'], item['sensor'])
@@ -97,23 +97,22 @@ def save_to_db(payload):
         if conn:
             conn.close()
 
-def clean_db():
-    ''' clear db
+def init_db():
+    SQL = '''
+        CREATE TABLE IF NOT EXISTS alarms (
+            occurrences varchar(64),
+            msg varchar(64),
+            repeater varchar(64),
+            sensor varchar(64)
+        );
     '''
-    try:
-        conn = sqlite3.connect('./telfire.db')
-        cur = conn.cursor()
-        cur.execute("DELETE FROM alarms")
-        conn.commit()
-    except sqlite3.Error, e:
-        logging.error("Error %s:" % e.args[0])
-        sys.exit(1)
-    finally:
-        if conn:
-            conn.close()
+    with sqlite3.connect('telfire.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute(SQL)
+        cursor.execute('DELETE from alarms')
 
 def main():
-    clean_db()
+    init_db()
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serversocket.bind(('0.0.0.0', 9005))
     serversocket.listen(5) # become a server socket, maximum 5 connections
