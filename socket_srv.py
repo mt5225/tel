@@ -5,34 +5,47 @@ import sys
 import binascii
 import logging
 import time
+from time import gmtime, strftime
 
 # create logger
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+def get_sensor_by_repeater(repeater):
+    ''' find sensor id by repeater
+    '''
+    return 'dummy_sensor'
+
 def get_fire_msg_array(data):
+    ''' split, mapping hex string to message hash
+    '''
     msg_array =  [x[:-2] for x in data.split('02') if ('4e47' in x or '4e67' in x)]
     msg_decode = []
     for item in msg_array:
-        msg = ''
-        if '4e47' in item:
-            msg = 'fire'
-        else:
-            msg = 'fire recover'
-        sensor_info_hex = ''.join(item[-6:])
-        sensor_info = sensor_info_hex.decode('hex')
-        msg_decode.append({'msg': msg, 'sensor_info': sensor_info})
+        repeater = ''.join(item[-6:]).decode('hex')
+        msg_decode.append(
+            {
+                'msg': 'fire' if '4e47' in item else 'recover', 
+                'repeater': repeater, 
+                'occurrences': strftime("%Y-%m-%d %H:%M:%S", gmtime()),
+                'sensor': get_sensor_by_repeater(repeater)
+            }
+        )
     return msg_decode
 
-def save_to_db(buf):
+def decode_message(buf):
+    ''' decode hex message to text message array
+    '''
     data = binascii.hexlify(buf)
     logging.debug(data)
     msg_array = get_fire_msg_array(data)
     for item in msg_array:
         logging.debug(item)
-
+    return msg_array
     
 
 def recv_timeout(the_socket,timeout=2):
+    ''' socket get data with timeout
+    '''
     #make socket non blocking
     the_socket.setblocking(0)
      
@@ -67,16 +80,52 @@ def recv_timeout(the_socket,timeout=2):
     #join all parts to make final string
     return ''.join(total_data)
 
+def save_to_db(payload):
+    ''' save message to db
+    '''
+    try:
+        conn = sqlite3.connect('./telfire.db')
+        cur = conn.cursor()
+        for item in payload:
+            record = (item['occurrences'], item['msg'], item['repeater'], item['sensor'])
+            cur.execute("INSERT INTO alarms VALUES(?,?,?,?)", record)
+        conn.commit()
+    except sqlite3.Error, e:
+        logging.error("Error %s:" % e.args[0])
+        sys.exit(1)
+    finally:
+        if conn:
+            conn.close()
+
+def clean_db():
+    ''' clear db
+    '''
+    try:
+        conn = sqlite3.connect('./telfire.db')
+        cur = conn.cursor()
+        cur.execute("DELETE FROM alarms")
+        conn.commit()
+    except sqlite3.Error, e:
+        logging.error("Error %s:" % e.args[0])
+        sys.exit(1)
+    finally:
+        if conn:
+            conn.close()
+
 def main():
+    clean_db()
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serversocket.bind(('0.0.0.0', 9005))
     serversocket.listen(5) # become a server socket, maximum 5 connections
+    logging.debug("socket server listening at port 9005 ...")
 
     while True:
         connection, address = serversocket.accept()
         buf = recv_timeout(connection)
         if len(buf) > 0:
-            save_to_db(buf)
+            payload  = decode_message(buf)
+            if len(payload) > 0:
+                save_to_db(payload)
 
 if __name__ == '__main__':
    main()
