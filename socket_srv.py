@@ -5,16 +5,22 @@ import sys
 import binascii
 import logging
 import time
+import pandas as pd
 from time import gmtime, strftime
 from apscheduler.schedulers.background import BackgroundScheduler
 
 # create logger
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+# init lookup map
+LOOKUP = pd.DataFrame()
+
 def get_sensor_by_repeater(repeater):
-    ''' find sensor id by repeater
+    ''' find sensor id by repeater by mapping file
     '''
-    return 'dummy_sensor'
+    df = LOOKUP.loc[LOOKUP['repeater_id'] == repeater]
+    sensor = df.iloc[0].sensor_id
+    return sensor
 
 def get_fire_msg_array(data):
     ''' split, mapping hex string to message hash
@@ -142,8 +148,12 @@ def main():
             if len(payload) > 0:
                 save_to_db(payload)
 
+def load_repeater_sensor_map():
+   return pd.read_csv('fire_map.csv', dtype={'repeater_id': object})
+
 if __name__ == '__main__':
-   keepalive = int(sys.argv[1])
    init_db()
-   start_event_cleaner(keepalive)
+   LOOKUP = load_repeater_sensor_map()
+   logging.debug(LOOKUP)
+   start_event_cleaner(int(sys.argv[1]))
    main()
