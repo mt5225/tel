@@ -6,6 +6,7 @@ import binascii
 import logging
 import time
 from time import gmtime, strftime
+from apscheduler.schedulers.background import BackgroundScheduler
 
 # create logger
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -44,7 +45,7 @@ def decode_message(buf):
     
 
 def recv_timeout(the_socket,timeout=2):
-    ''' socket get data with timeout
+    ''' get data from socket with timeout
     '''
     #make socket non blocking
     the_socket.setblocking(0)
@@ -111,8 +112,23 @@ def init_db():
         cursor.execute(SQL)
         cursor.execute('DELETE from alarms')
 
+def remove_old_event():
+    ''' remove all events from alarms table
+    '''
+    logging.debug('clean old event')
+    with sqlite3.connect('telfire.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('DELETE from alarms')
+
+
+def start_event_cleaner(keepalive = 1):
+    ''' run the event cleaner every keepalive minutes
+    '''
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(remove_old_event, 'interval', minutes=keepalive)
+    scheduler.start()
+
 def main():
-    init_db()
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serversocket.bind(('0.0.0.0', 9005))
     serversocket.listen(5) # become a server socket, maximum 5 connections
@@ -127,4 +143,7 @@ def main():
                 save_to_db(payload)
 
 if __name__ == '__main__':
+   keepalive = int(sys.argv[1])
+   init_db()
+   start_event_cleaner(keepalive)
    main()
