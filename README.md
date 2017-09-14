@@ -10,3 +10,8 @@ it will:
   - and clean up all records in table `alarms`
   - start the sheduler with interval 10 minutes, which in turn clear all event in table
   - listening to port `9005` 
+
+
+## test
+  - `python api_srv.py` 
+  - curl -i -X GET http://localhost:9006/fire
