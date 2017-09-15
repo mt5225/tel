@@ -14,41 +14,46 @@ util.addEventListener("levelchange", function (event) {
 })
 
 function get_floor_by_objname(obj_name) {
-	if(string.contains(obj_name, '1F')){
+	if (string.contains(obj_name, '1F')) {
 		return 1;
 	}
-	if(string.contains(obj_name, '2F')){
+	if (string.contains(obj_name, '2F')) {
 		return 2;
 	}
-	if(string.contains(obj_name, '3F')){
+	if (string.contains(obj_name, '3F')) {
 		return 3;
 	}
 	return 0;
 }
 
 function fly_to_object(fireObj) {
-	if (CURRENT_LEVEL == 'world') {
-		var building = world.buildingList.get_Item(0);
+	var building = world.buildingList.get_Item(0);
+	if (CURRENT_LEVEL != 'floor') {
 		util.setTimeout(function () {
 			level.change(building);
 			util.setTimeout(function () {
-				var obj_name = fireObj.getProperty('name');
-				var floor = building.planList.get_Item(get_floor_by_objname(obj_name));
+				var floor = building.planList.get_Item(get_floor_by_objname(fireObj.getProperty("name")));
 				level.change(floor);
 			}, 100);
+		}, 100);
+	} else {
+		util.setTimeout(function () {
+			var floor = building.planList.get_Item(get_floor_by_objname(fireObj.getProperty("name")));
+			level.change(floor);
 		}, 100);
 	}
 	var cam_pos = camera.getEyePos();
 
-	if( 	Vector3.Distance(cam_pos, fireObj.center + Vector3(3, -1, 2)) > 5) {
-	camera.flyTo({
-		"eye": fireObj.center + Vector3(3, -1, 2),
-		"target": fireObj.center,
-		"time": 1,
-		"complete": function () {
-			fireObj.setColorFlash(true, Color.red, 2.5);
-		}
-	});}
+	if (Vector3.Distance(cam_pos, fireObj.center) > 50) {
+		camera.flyTo({
+			"eye": fireObj.center + Vector3(6, 6, 6),
+			"target": fireObj.center,
+			"time": 1,
+			"complete": function () {
+				fireObj.setColorFlash(true, Color.red, 2.5);
+			}
+		});
+	}
 }
 
 gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
@@ -70,6 +75,7 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 						foreach(var item in vpairs(table.keys(T_Live_Alarm))) {
 							if (string.contains(T_Live_Alarm[item], "fire")) {
 								var fireObj = object.find(item);
+								fireObj.addProperty("name", item);
 								fly_to_object(fireObj);
 							} else {
 								table.remove(T_Live_Alarm, item);
@@ -94,9 +100,9 @@ gui.createButton("Reset", Rect(40, 260, 60, 30), function () {
 		"eye": Vector3(-80, 80, -50),
 		"target": Vector3(3, 4, 5),
 		"time": 1,
-		"complete": function () {	
+		"complete": function () {
 			LISTENING = false;
-			util.setTimeout(function () {			
+			util.setTimeout(function () {
 				CURRENT_LEVEL = 'world';
 				level.change(world);
 			}, 500);
