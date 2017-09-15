@@ -15,3 +15,6 @@ it will:
 ## test
   - `python api_srv.py` 
   - curl -i -X GET http://localhost:9006/fire
+
+## download tel scene
+  - curl -i -X GET http://www.3dmomoda.com/scene/downjson\?sceneid\=20170902015219229693920 > 20170902015219229693920.json
