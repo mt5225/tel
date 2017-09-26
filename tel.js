@@ -8,6 +8,7 @@ var T_Live_Alarm = {};
 var CURRENT_LEVEL = 'world';
 var BASE_URL = "http://192.168.86.24:9006/";
 var banner_ui = null;
+var API_URL =  "http://192.168.86.24:9006/fire";
 
 util.addEventListener("levelchange", function (event) {
 	if (event.ClsID == ObjectFactory.CLSID_WORLD) {
@@ -93,7 +94,7 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 		LISTENING = true;
 		util.setInterval(function () {
 			util.download({
-				"url": "http://192.168.86.24:9006/fire",
+				"url": API_URL,
 				"type": "text",
 				"success": function (rs) {
 					if (string.length(rs) > 10) {
