@@ -152,6 +152,8 @@ def load_repeater_sensor_map():
    return pd.read_csv('fire_map.csv', dtype={'repeater_id': object})
 
 if __name__ == '__main__':
+   ''' argument: clearn up event db in N minutes
+   '''
    init_db()
    LOOKUP = load_repeater_sensor_map()
    logging.debug(LOOKUP)
