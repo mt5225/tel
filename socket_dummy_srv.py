@@ -31,6 +31,6 @@ if __name__ == '__main__':
                 time.sleep(wait_time)
                 logging.info("send sample message [%s]" % item)
                 clientsocket.send(buf)
-        logging.debug('done, close client socket')
-        clientsocket.close()
+        # logging.debug('done, close client socket')
+        # clientsocket.close()
     
