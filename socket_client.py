@@ -6,23 +6,34 @@ import binascii
 import logging
 import time
 import pandas as pd
+import datetime
 from time import gmtime, strftime
 from apscheduler.schedulers.background import BackgroundScheduler
 
 # create logger
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+handler = logging.FileHandler("fetchdata_%s.log" % strftime("%Y-%m-%d", gmtime())) 
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(handler)
 
 # global settings
-HOST = '192.168.0.150'               
-PORT = 1470
+#_HOST = '192.168.0.150'
+_HOST = 'localhost'
+_PORT = 1470
+# all time value are in seconds
+_RECV_TIMEOUT = 1 * 60
+_SOCK_POLLING = _RECV_TIMEOUT + 1
+_CLEAN_DB_PERIOD = 60 * 60
 
 # init lookup map
-LOOKUP = pd.DataFrame()
+_LOOKUP = pd.read_csv('fire_map.csv', dtype={'repeater_id': object})
+logger.debug(_LOOKUP)
 
 def get_sensor_by_repeater(repeater):
     ''' find sensor id by repeater by mapping file
     '''
-    df = LOOKUP.loc[LOOKUP['repeater_id'] == repeater]
+    df = _LOOKUP.loc[_LOOKUP['repeater_id'] == repeater]
     sensor = df.iloc[0].sensor_id
     return sensor
 
@@ -47,51 +58,11 @@ def decode_message(buf):
     ''' decode hex message to text message array
     '''
     data = binascii.hexlify(buf)
-    logging.debug(data)
+    logger.debug(data)
     msg_array = get_fire_msg_array(data)
     for item in msg_array:
-        logging.debug(item)
+        logger.debug(item)
     return msg_array
-    
-
-def recv_timeout(the_socket,timeout=2):
-    ''' get data from socket with timeout
-    '''
-    #make socket non blocking
-    the_socket.setblocking(0)
-     
-    #total data partwise in an array
-    total_data=[];
-    data='';
-     
-    #beginning time
-    begin=time.time()
-    while 1:
-        #if you got some data, then break after timeout
-        if total_data and time.time()-begin > timeout:
-            break
-         
-        #if you got no data at all, wait a little longer, twice the timeout
-        elif time.time()-begin > timeout*2:
-            break
-         
-        #recv something
-        try:
-            data = the_socket.recv(64)
-            if data: 
-                total_data.append(data)
-                logging.debug('got data')
-                #change the beginning time for measurement
-                begin = time.time()
-            else:
-                #sleep for sometime to indicate a gap
-			    logging.debug('no data received, sleep for 1s')
-			    time.sleep(0.1)
-        except:
-            pass
-     
-    #join all parts to make final string
-    return ''.join(total_data)
 
 def save_to_db(payload):
     ''' save message to db
@@ -122,61 +93,52 @@ def init_db():
     with sqlite3.connect('telfire.db') as conn:
         cursor = conn.cursor()
         cursor.execute(SQL)
-        cursor.execute('DELETE from alarms')
 
 def remove_old_event():
     ''' remove all events from alarms table
     '''
-    logging.debug('clean old event')
+    logger.debug('clean old event')
     with sqlite3.connect('telfire.db') as conn:
         cursor = conn.cursor()
         cursor.execute('DELETE from alarms')
 
-
-def start_event_cleaner(interval = 1):
-    ''' run the event cleaner every keepalive minutes
-    '''
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(remove_old_event, 'interval', minutes=interval)
-    scheduler.start()
-
-def start_data_polling(interval = 1):
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(fetch_data, 'interval', seconds=interval)
-    scheduler.start()
-
 def fetch_data():
-    ''' fetch data every 1 second
+    ''' fetch data from socket server
     '''
     # create a socket object
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-    s.connect((HOST, PORT))                               
-    s.settimeout(119)
+    s.connect((_HOST, _PORT))                               
+    s.settimeout(_RECV_TIMEOUT)
     try:
         while True:
-            buf = s.recv(32)
-            payload = decode_message(buf)
-            if len(payload) > 0: save_to_db(payload)
+            buf = s.recv(1024)
+            if len(buf) > 1:
+                payload = decode_message(buf)
+                if len(payload) > 0: save_to_db(payload)
+            else:
+                logger.debug("received %d bytes, server sokect closed" % len(buf))
+                s.close()
+                break
     except socket.timeout as err:
-        logging.debug(err)
-        return
-    finally:
-        s.settimeout(None)	
+        logger.debug(err)
+    finally:	
         s.close()
-
-def load_repeater_sensor_map():
-   return pd.read_csv('fire_map.csv', dtype={'repeater_id': object})
 
 if __name__ == '__main__':
    ''' argument: clearn up event db in N minutes
    '''
    init_db()
-   LOOKUP = load_repeater_sensor_map()
-   logging.debug(LOOKUP)
-   if len(sys.argv) > 1: 
-       start_event_cleaner(int(sys.argv[1]))
-   else:
-       start_event_cleaner(20)
-   start_data_polling(120)
-   while True:
-       pass
+   scheduler = BackgroundScheduler()
+   start_time = datetime.datetime.now() + datetime.timedelta(0,3)
+   # add clean db job
+   scheduler.add_job(remove_old_event, 'interval', seconds=_CLEAN_DB_PERIOD, start_date=start_time)
+   # add fetch data job
+   scheduler.add_job(fetch_data, 'interval', seconds=_SOCK_POLLING, start_date=start_time)
+   # start job scheduler
+   scheduler.start()
+   try:
+       while True:
+           time.sleep(2)
+   except (KeyboardInterrupt, SystemExit):
+       # Not strictly necessary if daemonic mode is enabled but should be done if possible
+       scheduler.shutdown()
