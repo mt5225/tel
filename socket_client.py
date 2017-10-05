@@ -5,15 +5,16 @@ import sys
 import binascii
 import logging
 import time
-import pandas as pd
 import datetime
 from time import gmtime, strftime
+from logging.handlers import RotatingFileHandler
 from apscheduler.schedulers.background import BackgroundScheduler
+import pandas as pd
 
 # create logger
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-handler = logging.FileHandler("fetchdata_%s.log" % strftime("%Y-%m-%d", gmtime())) 
+handler = RotatingFileHandler('fetchdata.log', maxBytes=10000000, backupCount=5)
 handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(handler)
 
