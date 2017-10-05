@@ -13,7 +13,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # global settings
-HOST = 'localhost'               
+HOST = '192.168.0.150'               
 PORT = 1470
 
 # init lookup map
@@ -77,14 +77,16 @@ def recv_timeout(the_socket,timeout=2):
          
         #recv something
         try:
-            data = the_socket.recv(8192)
-            if data:
+            data = the_socket.recv(64)
+            if data: 
                 total_data.append(data)
+                logging.debug('got data')
                 #change the beginning time for measurement
                 begin = time.time()
             else:
                 #sleep for sometime to indicate a gap
-                time.sleep(0.1)
+			    logging.debug('no data received, sleep for 1s')
+			    time.sleep(0.1)
         except:
             pass
      
@@ -149,14 +151,18 @@ def fetch_data():
     # create a socket object
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
     s.connect((HOST, PORT))                               
-
-    # Receive no more than 1024 bytes
-    buf = s.recv(1024)                                     
-    s.close()
-    payload  = decode_message(buf)
-    if len(payload) > 0:
-        save_to_db(payload)
-
+    s.settimeout(119)
+    try:
+        while True:
+            buf = s.recv(32)
+            payload = decode_message(buf)
+            if len(payload) > 0: save_to_db(payload)
+    except socket.timeout as err:
+        logging.debug(err)
+        return
+    finally:
+        s.settimeout(None)	
+        s.close()
 
 def load_repeater_sensor_map():
    return pd.read_csv('fire_map.csv', dtype={'repeater_id': object})
@@ -171,6 +177,6 @@ if __name__ == '__main__':
        start_event_cleaner(int(sys.argv[1]))
    else:
        start_event_cleaner(20)
-   start_data_polling(3)
+   start_data_polling(120)
    while True:
        pass
