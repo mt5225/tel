@@ -34,6 +34,7 @@ function get_floor_by_objname(obj_name) {
 	return 0;
 }
 
+//show banner on top of object
 function show_banner(obj) {
 	if (T_Banner_List[obj.getProperty("name")] == null) {
 		util.download({
@@ -51,13 +52,32 @@ function show_banner(obj) {
 						banner_ui.setImage("Button", text);
 					}
 				});
+				//fly to object while user click the banner
+				banner_ui.regButtonEvent("Button", function () {
+					fly_to_object(obj);
+				});
 				T_Banner_List[obj.getProperty("name")] = banner_ui;
 			}
 		});
 	}
 }
+
+//fly to object
+function fly_to_object(obj) {
+	var cam_pos = camera.getEyePos();
+	if (Vector3.Distance(cam_pos, obj.center) > 50) {
+		camera.flyTo({
+			"eye": obj.center + Vector3(0.5, 0.5, 0.5),
+			"target": obj.center,
+			"time": 1,
+			"complete": function () {
+			}
+		});
+	}
+}
+
 //react to fire alarm level
-function fly_to_object(fireObj) {
+function fly_to_fire_level(fireObj) {
 	var building = world.buildingList.get_Item(0);
 	if (CURRENT_LEVEL != 'floor') {
 		util.setTimeout(function () {
@@ -71,7 +91,7 @@ function fly_to_object(fireObj) {
 		util.setTimeout(function () {
 			var floor = building.planList.get_Item(get_floor_by_objname(fireObj.getProperty("name")));
 			level.change(floor);
-		}, 1000);
+		}, 1200);
 	}
 }
 
@@ -158,10 +178,11 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 									}, 1000);
 									//check if have flied once
 									if (table.containskey(T_Fly_List, fireObj.getProperty("name")) == false) {
-										fly_to_object(fireObj);
+										fly_to_fire_level(fireObj);
 										T_Fly_List[fireObj.getProperty("name")] = fireObj;
 									}
 								} else {
+									//handle recovery fire alarms
 									table.remove(T_Live_Fire_Alarm, item);
 									var fireObj = object.find(item);
 									fireObj.setColorFlash(false);
@@ -201,6 +222,7 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 								remove_recovery_gas_alarm(gasArray);
 							}
 						} else {
+							//no gas alarms, clear alarm array
 							remove_all_gas_alarm();
 						}
 					},
