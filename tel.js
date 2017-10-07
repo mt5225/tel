@@ -76,19 +76,6 @@ function fly_to_object(fireObj) {
 		show_banner(fireObj);
 		fireObj.setColorFlash(true, Color.red, 2.5);
 	}, 2000);
-
-	/* var cam_pos = camera.getEyePos();
-	if (Vector3.Distance(cam_pos, fireObj.center) > 80) {
-	camera.flyTo({
-	"eye": fireObj.center + Vector3(6, 6, 6),
-	"target": fireObj.center,
-	"time": 1,
-	"complete": function () {
-	show_banner(fireObj);
-	fireObj.setColorFlash(true, Color.red, 2.5);
-	}
-	});
-	} */
 }
 
 //react to gas alarm
