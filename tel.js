@@ -4,7 +4,8 @@
 
 //global init settings
 var LISTENING = false;
-var T_Live_Alarm = {};
+var T_Live_Fire_Alarm = {};
+var T_Live_Gas_Alarm = {};
 var CURRENT_LEVEL = 'world';
 var BASE_URL = "http://192.168.86.24:9006/";
 var T_Banner_List = {};
@@ -93,6 +94,39 @@ function fly_to_gas_level() {
 	}
 }
 
+function remove_all_gas_alarm() {
+	foreach(var item in vpairs(table.keys(T_Live_Gas_Alarm))) {
+		var obj = object.find(item);
+		obj.setColorFlash(false);
+		if (T_Banner_List[item] != null) {
+			T_Banner_List[item].destroy();
+			table.remove(T_Banner_List, item);
+		}
+		table.remove(T_Fly_List, item);
+	}
+}
+
+function remove_recovery_gas_alarm(gasArray) {
+	foreach(var item in vpairs(table.keys(T_Live_Gas_Alarm))) {
+		var isAlarm = false;
+		for (var i = 0; i < array.count(gasArray); i++) {
+			var tmpArray = string.split(gasArray[i], "|");
+			if (string.contains(tmpArray[0], item)) {
+				isAlarm = true;
+			}
+		}
+		if (isAlarm == false) {
+			var obj = object.find(item);
+			obj.setColorFlash(false);
+			if (T_Banner_List[item] != null) {
+				T_Banner_List[item].destroy();
+				table.remove(T_Banner_List, item);
+			}
+			table.remove(T_Fly_List, item);
+		}
+	}
+}
+
 gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 	if (LISTENING == false) {
 		LISTENING = true;
@@ -108,26 +142,27 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 							for (var i = 0; i < array.count(msgArray); i++) {
 								//split and save to live event table
 								tmpArray = string.split(msgArray[i], "|");
-								T_Live_Alarm[tmpArray[3]] = msgArray[i];
+								T_Live_Fire_Alarm[tmpArray[3]] = msgArray[i];
 							}
-							foreach(var item in vpairs(table.keys(T_Live_Alarm))) {
-								if (string.contains(T_Live_Alarm[item], "fire")) {
+							foreach(var item in vpairs(table.keys(T_Live_Fire_Alarm))) {
+								if (string.contains(T_Live_Fire_Alarm[item], "fire")) {
 									var fireObj = object.find(item);
 									fireObj.addProperty("name", item);
-									var t = string.split(T_Live_Alarm[item], "|");
+									var t = string.split(T_Live_Fire_Alarm[item], "|");
 									fireObj.addProperty("occurance", t[0]);
 									fireObj.addProperty("name", item);
 									fireObj.addProperty("tranfer", t[2]);
 									util.setTimeout(function () {
 										show_banner(fireObj);
 										fireObj.setColorFlash(true, Color.red, 2.5);
-									}, 2000);
+									}, 1000);
+									//check if have flied once
 									if (table.containskey(T_Fly_List, fireObj.getProperty("name")) == false) {
 										fly_to_object(fireObj);
 										T_Fly_List[fireObj.getProperty("name")] = fireObj;
 									}
 								} else {
-									table.remove(T_Live_Alarm, item);
+									table.remove(T_Live_Fire_Alarm, item);
 									var fireObj = object.find(item);
 									fireObj.setColorFlash(false);
 								}
@@ -148,20 +183,25 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 							var gasArray = string.split(rs, "#");
 							if (array.count(gasArray) > 0) {
 								for (var i = 0; i < array.count(gasArray); i++) {
-									tmpArray = string.split(gasArray[i], "|");
+									var tmpArray = string.split(gasArray[i], "|");
 									var gasObj = object.find(tmpArray[0]);
 									gasObj.addProperty("occurance", tmpArray[1]);
 									gasObj.addProperty("name", tmpArray[0]);
 									util.setTimeout(function () {
 										gasObj.setColorFlash(true, Color.red, 2.5);
 										show_banner(gasObj);
-									}, 2000);
+										T_Live_Gas_Alarm[gasObj.getProperty("name")] = gasObj
+									}, 1000);
+									//check if have flied once
 									if (table.containskey(T_Fly_List, gasObj.getProperty("name")) == false) {
 										fly_to_gas_level();
 										T_Fly_List[gasObj.getProperty("name")] = gasObj;
 									}
 								}
+								remove_recovery_gas_alarm(gasArray);
 							}
+						} else {
+							remove_all_gas_alarm();
 						}
 					},
 					"error": function (t) {
@@ -190,7 +230,7 @@ gui.createButton("Reset", Rect(40, 260, 60, 30), function () {
 				CURRENT_LEVEL = 'world';
 				level.change(world);
 				table.clear(T_Banner_List);
-				table.clear(T_Live_Alarm);
+				table.clear(T_Live_Fire_Alarm);
 				table.clear(T_Fly_List);
 			}, 500);
 		}
