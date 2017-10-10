@@ -70,8 +70,7 @@ function fly_to_object(obj) {
 			"eye": obj.center + Vector3(0.5, 0.5, 0.5),
 			"target": obj.center,
 			"time": 1,
-			"complete": function () {
-			}
+			"complete": function () {}
 		});
 	}
 }
@@ -95,13 +94,14 @@ function fly_to_fire_level(fireObj) {
 	}
 }
 
-//fly to gas level (first floor)
-function fly_to_gas_level() {
+//fly to gas level (fixed to first floor)
+function fly_to_gas_level(camStr) {
 	var building = world.buildingList.get_Item(0);
 	if (CURRENT_LEVEL != 'floor') {
 		util.setTimeout(function () {
 			level.change(building);
 			util.setTimeout(function () {
+				//get first floor obj
 				var floor = building.planList.get_Item(1);
 				level.change(floor);
 			}, 100);
@@ -110,6 +110,24 @@ function fly_to_gas_level() {
 		util.setTimeout(function () {
 			var floor = building.planList.get_Item(1);
 			level.change(floor);
+		}, 1000);
+	}
+	//show nearby camera
+	tmpArray = string.split(camStr, "_");
+	if (tmpArray[1] != 'nan') {
+		open_camera_live_feed(tmpArray[1])
+	}
+	if (tmpArray[0] != 'nan') {
+		open_camera_live_feed(tmpArray[0])
+	}
+}
+
+//open camera live feed
+function open_camera_live_feed(objId) {
+	var camObj = object.find(objId);
+	if (camObj != null) {
+		util.setTimeout(function () {
+			selector.select(camObj);
 		}, 1000);
 	}
 }
@@ -152,6 +170,7 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 		LISTENING = true;
 		util.setInterval(function () {
 			if (LISTENING) {
+				//polling for fire information
 				util.download({
 					"url": BASE_URL + "fire",
 					"type": "text",
@@ -195,6 +214,7 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 						print(t);
 					}
 				});
+				//polling for gas information
 				util.download({
 					"url": BASE_URL + "gas",
 					"type": "text",
@@ -206,8 +226,9 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 								for (var i = 0; i < array.count(gasArray); i++) {
 									var tmpArray = string.split(gasArray[i], "|");
 									var gasObj = object.find(tmpArray[0]);
-									gasObj.addProperty("occurance", tmpArray[1]);
+									gasObj.addProperty("occurance", tmpArray[2]);
 									gasObj.addProperty("name", tmpArray[0]);
+									var camStr = tmpArray[1];
 									util.setTimeout(function () {
 										gasObj.setColorFlash(true, Color.red, 2.5);
 										show_banner(gasObj);
@@ -215,7 +236,7 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 									}, 1000);
 									//check if have flied once
 									if (table.containskey(T_Fly_List, gasObj.getProperty("name")) == false) {
-										fly_to_gas_level();
+										fly_to_gas_level(camStr);
 										T_Fly_List[gasObj.getProperty("name")] = gasObj;
 									}
 								}
@@ -237,6 +258,7 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 
 gui.createButton("Reset", Rect(40, 260, 60, 30), function () {
 	util.clearAllTimers();
+	selector.ClearSelection();
 	foreach(var item in vpairs(table.keys(T_Banner_List))) {
 		if (T_Banner_List[item] != null) {
 			T_Banner_List[item].destroy();
