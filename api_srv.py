@@ -6,15 +6,30 @@ from logging.handlers import RotatingFileHandler
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from types import NoneType
+import pandas as pd
 
 DB_URL = 'mysql+mysqldb://root:root@192.168.33.10/alarm_momoda'
 
+# innit flash app and backend db connection
 app = Flask(__name__, static_url_path='', static_folder='static')
+# fire db (sqlite3)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///telfire.db'
+# gas db (mysql)
 app.config['SQLALCHEMY_BINDS'] = {
     'gas': DB_URL,
 }
 db = SQLAlchemy(app)
+
+# init lookup map
+_GAS_LOOKUP = pd.read_csv('gas_cctv_mapping.csv')
+
+def get_cctvs_by_tagname(tagname):
+    ''' find sensor id by repeater by mapping file
+    '''
+    df = _GAS_LOOKUP.loc[_GAS_LOOKUP['tag'] == tagname]
+    app.logger.debug(df.iloc[0])
+    cctv_str = "%s_%s" % (df.iloc[0].CCTV1, df.iloc[0].CCTV2)
+    return cctv_str
 
 @app.route('/')
 def index():
@@ -40,7 +55,8 @@ def gas():
     for row in result:
         if row[2] == 1 or row[3] == 1:
             app.logger.info("alarm from %s" % row[1])
-            msg_array.append("%s|%s"%(row[1], row[4]))
+            cctv_str = get_cctvs_by_tagname(row[1])
+            msg_array.append("%s|%s|%s"%(row[1], cctv_str, row[4]))
     msg_short = ""
     if msg_array:
         msg_short = '#'.join(msg_array)
