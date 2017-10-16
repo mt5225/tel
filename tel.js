@@ -165,6 +165,56 @@ function remove_recovery_gas_alarm(gasArray) {
 	}
 }
 
+function update_fire_alarm_table() {
+	foreach(var item in vpairs(table.keys(T_Live_Fire_Alarm))) {
+		if (string.contains(T_Live_Fire_Alarm[item], "fire")) {
+			var fireObj = object.find(item);
+			fireObj.addProperty("name", item);
+			var t = string.split(T_Live_Fire_Alarm[item], "|");
+			fireObj.addProperty("occurance", t[0]);
+			fireObj.addProperty("name", item);
+			fireObj.addProperty("tranfer", t[2]);
+			util.setTimeout(function () {
+				show_banner(fireObj);
+				fireObj.setColorFlash(true, Color.red, 2.5);
+			}, 1000);
+			//check if have flied once
+			if (table.containskey(T_Fly_List, fireObj.getProperty("name")) == false) {
+				fly_to_fire_level(fireObj);
+				T_Fly_List[fireObj.getProperty("name")] = fireObj;
+			}
+		} else {
+			//handle recovery fire alarms
+			table.remove(T_Live_Fire_Alarm, item);
+			var fireObj = object.find(item);
+			fireObj.setColorFlash(false);
+		}
+	}
+}
+
+function update_gas_alarm_table(flyObjString) {
+	foreach(var item in vpairs(table.keys(T_Live_Gas_Alarm))) {
+		if (string.length(T_Live_Gas_Alarm[item]) > 1) {
+			var gasObj = object.find(item);
+			var t = string.split(T_Live_Gas_Alarm[item], "|");
+			gasObj.addProperty("name", item);
+			gasObj.addProperty("occurance", t[2]);
+			var camStr = t[1];
+			util.setTimeout(function () {
+				gasObj.setColorFlash(true, Color.red, 2.5);
+				show_banner(gasObj);
+				//check if have flied once and only fly to first gas sensor
+				var if_fly = string.contains(flyObjString, gasObj.getProperty("name"))
+				if (table.containskey(T_Fly_List, gasObj.getProperty("name")) == false && if_fly == true) {
+					fly_to_gas_level(camStr);
+					T_Fly_List[gasObj.getProperty("name")] = gasObj;
+				}
+			}, 1000);
+
+		}
+	}
+}
+
 gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 	if (LISTENING == false) {
 		LISTENING = true;
@@ -183,32 +233,8 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 								tmpArray = string.split(msgArray[i], "|");
 								T_Live_Fire_Alarm[tmpArray[3]] = msgArray[i];
 							}
-							foreach(var item in vpairs(table.keys(T_Live_Fire_Alarm))) {
-								if (string.contains(T_Live_Fire_Alarm[item], "fire")) {
-									var fireObj = object.find(item);
-									fireObj.addProperty("name", item);
-									var t = string.split(T_Live_Fire_Alarm[item], "|");
-									fireObj.addProperty("occurance", t[0]);
-									fireObj.addProperty("name", item);
-									fireObj.addProperty("tranfer", t[2]);
-									util.setTimeout(function () {
-										show_banner(fireObj);
-										fireObj.setColorFlash(true, Color.red, 2.5);
-									}, 1000);
-									//check if have flied once
-									if (table.containskey(T_Fly_List, fireObj.getProperty("name")) == false) {
-										fly_to_fire_level(fireObj);
-										T_Fly_List[fireObj.getProperty("name")] = fireObj;
-									}
-								} else {
-									//handle recovery fire alarms
-									table.remove(T_Live_Fire_Alarm, item);
-									var fireObj = object.find(item);
-									fireObj.setColorFlash(false);
-								}
-							}
 						}
-
+						update_fire_alarm_table();
 					},
 					"error": function (t) {
 						print(t);
@@ -221,26 +247,14 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 					"success": function (rs) {
 						if (string.length(rs) > 10) {
 							rs = string.trim(rs);
-							var gasArray = string.split(rs, "#");
-							if (array.count(gasArray) > 0) {
-								for (var i = 0; i < array.count(gasArray); i++) {
-									var tmpArray = string.split(gasArray[i], "|");
-									var gasObj = object.find(tmpArray[0]);
-									gasObj.addProperty("occurance", tmpArray[2]);
-									gasObj.addProperty("name", tmpArray[0]);
-									var camStr = tmpArray[1];
-									util.setTimeout(function () {
-										gasObj.setColorFlash(true, Color.red, 2.5);
-										show_banner(gasObj);
-										T_Live_Gas_Alarm[gasObj.getProperty("name")] = gasObj
-									}, 1000);
-									//check if have flied once
-									if (table.containskey(T_Fly_List, gasObj.getProperty("name")) == false) {
-										fly_to_gas_level(camStr);
-										T_Fly_List[gasObj.getProperty("name")] = gasObj;
-									}
+							var msgArray = string.split(rs, "#");
+							if (array.count(msgArray) > 0) {
+								for (var i = 0; i < array.count(msgArray); i++) {
+									tmpArray = string.split(msgArray[i], "|");
+									T_Live_Gas_Alarm[tmpArray[0]] = msgArray[i];
 								}
-								remove_recovery_gas_alarm(gasArray);
+								update_gas_alarm_table(msgArray[0]);
+								//remove_recovery_gas_alarm(msgArray);
 							}
 						} else {
 							//no gas alarms, clear alarm array
