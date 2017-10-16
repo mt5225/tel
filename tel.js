@@ -144,27 +144,6 @@ function remove_all_gas_alarm() {
 	}
 }
 
-function remove_recovery_gas_alarm(gasArray) {
-	foreach(var item in vpairs(table.keys(T_Live_Gas_Alarm))) {
-		var isAlarm = false;
-		for (var i = 0; i < array.count(gasArray); i++) {
-			var tmpArray = string.split(gasArray[i], "|");
-			if (string.contains(tmpArray[0], item)) {
-				isAlarm = true;
-			}
-		}
-		if (isAlarm == false) {
-			var obj = object.find(item);
-			obj.setColorFlash(false);
-			if (T_Banner_List[item] != null) {
-				T_Banner_List[item].destroy();
-				table.remove(T_Banner_List, item);
-			}
-			table.remove(T_Fly_List, item);
-		}
-	}
-}
-
 function update_fire_alarm_table() {
 	foreach(var item in vpairs(table.keys(T_Live_Fire_Alarm))) {
 		if (string.contains(T_Live_Fire_Alarm[item], "fire")) {
@@ -254,7 +233,6 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 									T_Live_Gas_Alarm[tmpArray[0]] = msgArray[i];
 								}
 								update_gas_alarm_table(msgArray[0]);
-								//remove_recovery_gas_alarm(msgArray);
 							}
 						} else {
 							//no gas alarms, clear alarm array
