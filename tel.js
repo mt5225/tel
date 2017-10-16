@@ -267,6 +267,7 @@ gui.createButton("Reset", Rect(40, 260, 60, 30), function () {
 				level.change(world);
 				table.clear(T_Banner_List);
 				table.clear(T_Live_Fire_Alarm);
+				table.clear(T_Live_Gas_Alarm);
 				table.clear(T_Fly_List);
 			}, 500);
 		}
