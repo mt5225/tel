@@ -142,6 +142,7 @@ function remove_all_gas_alarm() {
 		}
 		table.remove(T_Fly_List, item);
 	}
+	table.clear(T_Live_Gas_Alarm);
 }
 
 function update_fire_alarm_table() {
@@ -212,8 +213,8 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 								tmpArray = string.split(msgArray[i], "|");
 								T_Live_Fire_Alarm[tmpArray[3]] = msgArray[i];
 							}
+							update_fire_alarm_table();
 						}
-						update_fire_alarm_table();
 					},
 					"error": function (t) {
 						print(t);
