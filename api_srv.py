@@ -22,11 +22,20 @@ db = SQLAlchemy(app)
 
 # init lookup map
 _GAS_LOOKUP = pd.read_csv('gas_cctv_mapping.csv')
+_FIRE_LOOKUP = pd.read_csv('fire_cctv_mapping.csv')
 
 def get_cctvs_by_tagname(tagname):
     ''' find sensor id by repeater by mapping file
     '''
     df = _GAS_LOOKUP.loc[_GAS_LOOKUP['tag'] == tagname]
+    app.logger.debug(df.iloc[0])
+    cctv_str = "%s_%s" % (df.iloc[0].CCTV1, df.iloc[0].CCTV2)
+    return cctv_str
+
+def get_cctvs_by_fire_name(name):
+    ''' find sensor id by repeater by mapping file
+    '''
+    df = _FIRE_LOOKUP.loc[_FIRE_LOOKUP['ID'] == name]
     app.logger.debug(df.iloc[0])
     cctv_str = "%s_%s" % (df.iloc[0].CCTV1, df.iloc[0].CCTV2)
     return cctv_str
@@ -40,7 +49,8 @@ def fire():
     msg_array = []
     result = db.engine.execute("SELECT * FROM alarms ORDER BY ROWID")
     for row in result:
-        msg_array.append('|'.join(row))
+        cctv_str = get_cctvs_by_fire_name(row[3])
+        msg_array.append("%s|%s|%s|%s|%s"%(row[0], row[1], row[2], row[3], cctv_str))
     app.logger.debug(msg_array)
     msg_short = '#'.join(msg_array) if msg_array > 0 else ""
     return msg_short, 200
