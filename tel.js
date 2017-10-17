@@ -76,7 +76,7 @@ function fly_to_object(obj) {
 }
 
 //react to fire alarm level
-function fly_to_fire_level(fireObj) {
+function fly_to_fire_level(fireObj, camStr) {
 	var building = world.buildingList.get_Item(0);
 	if (CURRENT_LEVEL != 'floor') {
 		util.setTimeout(function () {
@@ -91,6 +91,14 @@ function fly_to_fire_level(fireObj) {
 			var floor = building.planList.get_Item(get_floor_by_objname(fireObj.getProperty("name")));
 			level.change(floor);
 		}, 1200);
+	}
+	//show nearby camera
+	tmpArray = string.split(camStr, "_");
+	if (tmpArray[1] != 'nan') {
+		open_camera_live_feed(tmpArray[1])
+	}
+	if (tmpArray[0] != 'nan') {
+		open_camera_live_feed(tmpArray[0])
 	}
 }
 
@@ -160,7 +168,8 @@ function update_fire_alarm_table() {
 			}, 1000);
 			//check if have flied once
 			if (table.containskey(T_Fly_List, fireObj.getProperty("name")) == false) {
-				fly_to_fire_level(fireObj);
+				var camStr = t[4];
+				fly_to_fire_level(fireObj,camStr);
 				T_Fly_List[fireObj.getProperty("name")] = fireObj;
 			}
 		} else {
