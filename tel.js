@@ -11,6 +11,9 @@ var BASE_URL = "http://192.168.86.24:9006/";
 var T_Banner_List = {};
 var T_Fly_List = {}
 
+// create listenning sign
+var objSign = gui.createLabel("<color=red>IDLE</color>", Rect(5, 38, 120, 30));
+
 util.addEventListener("levelchange", function (event) {
 	if (event.ClsID == ObjectFactory.CLSID_WORLD) {
 		CURRENT_LEVEL = 'world';
@@ -206,6 +209,8 @@ function update_gas_alarm_table(flyObjString) {
 
 gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 	if (LISTENING == false) {
+		gui.destroy(objSign);
+		objSign = gui.createLabel("<color=green>LISTENING</color>", Rect(5, 38, 120, 30));
 		LISTENING = true;
 		util.setInterval(function () {
 			if (LISTENING) {
@@ -282,4 +287,6 @@ gui.createButton("Reset", Rect(40, 260, 60, 30), function () {
 			}, 500);
 		}
 	});
+	gui.destroy(objSign);
+	objSign = gui.createLabel("<color=red>IDLE</color>", Rect(5, 38, 120, 30));
 });
