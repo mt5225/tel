@@ -66,7 +66,8 @@ def gas():
         if row[2] == 1 or row[3] == 1:
             app.logger.info("alarm from %s" % row[1])
             cctv_str = get_cctvs_by_tagname(row[1])
-            msg_array.append("%s|%s|%s"%(row[1], cctv_str, row[4]))
+            location = "TTCK_1F"
+            msg_array.append("%s|%s|%s|%s"%(row[4],row[1],location,cctv_str))
     msg_short = ""
     if msg_array:
         msg_short = '#'.join(msg_array)
