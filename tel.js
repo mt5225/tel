@@ -122,7 +122,7 @@ function open_camera_live_feed(objId) {
 	if (camObj != null) {
 		util.setTimeout(function () {
 			selector.select(camObj);
-		}, 1000);
+		}, 3000);
 	}
 }
 
