@@ -1,5 +1,5 @@
 //---------------------------------------------
-// daeduck model scene id: 20170926103844839931304
+// tel scene id: 20170902015219229693920
 //---------------------------------------------
 
 //global init settings
@@ -8,13 +8,13 @@ var T_Live_Fire_Alarm = {};
 var T_Live_Gas_Alarm = {};
 var CURRENT_LEVEL = 'world';
 var BASE_URL = "http://192.168.86.24:9006/";
-//var BASE_URL = "http://192.168.236.1:9006/";
+//var BASE_URL = "http://192.168.86.24:9006/";
 var T_Banner_List = {};
 var T_Fly_List = {};
 var T_Fire_List = {};
 var T_Gas_List = {};
 var SHOW_GAS = true;
-var SHOW_FIRE = false;
+var SHOW_FIRE = true;
 
 // create listenning sign
 var objSign = gui.createLabel("<color=red>IDLE</color>", Rect(5, 38, 120, 30));
@@ -29,44 +29,17 @@ util.addEventListener("levelchange", function (event) {
 	}
 })
 
-function get_building_index_by_name(building_name) {
-	var building_index = -1
-		if (building_name == 'P2B') {
-			building_index = 8
-		}
-		if (building_name == 'P2A') {
-			building_index = 7
-		}
-		if (building_name == 'Reception') {
-			building_index = 11
-		}
-		return building_index
-}
-
-function get_floor_by_name(building_name, obj_name) {
-	var floor_index = 0
-		if (building_name == 'P2B') {
-			if (string.contains(obj_name, '1F')) {
-				floor_index = 0;
-			}
-			if (string.contains(obj_name, '2F')) {
-				floor_index = 1;
-			}
-			if (string.contains(obj_name, '3F')) {
-				floor_index = 2;
-			}
-		} else {
-			if (string.contains(obj_name, '1F')) {
-				floor_index = 1;
-			}
-			if (string.contains(obj_name, '2F')) {
-				floor_index = 2;
-			}
-			if (string.contains(obj_name, '3F')) {
-				floor_index = 3;
-			}
-		}
-		return floor_index;
+function get_floor_by_objname(obj_name) {
+	if (string.contains(obj_name, '1F')) {
+		return 1;
+	}
+	if (string.contains(obj_name, '2F')) {
+		return 2;
+	}
+	if (string.contains(obj_name, '3F')) {
+		return 3;
+	}
+	return 0;
 }
 
 //show banner on top of object
@@ -123,33 +96,17 @@ function fly_to_object(obj) {
 
 //fly to sensor level
 function fly_to_sensor_level(sensorObj) {
-	var location_array = string.split(sensorObj.getProperty('location'), '_');
-	var building_name = location_array[0];
-	var building = world.buildingList.get_Item(get_building_index_by_name(building_name));
-	var if_campus = string.contains(sensorObj.getProperty('location'), "BACK");
-	if (if_campus == true) {
-		camera.flyTo({
-			"eye": Vector3(-80, 120, -50),
-			"target": sensorObj.pos,
-			"time": 1,
-			"complete": function () {
-				LISTENING = false;
-				util.setTimeout(function () {
-					CURRENT_LEVEL = 'world';
-					level.change(world);
-				}, 500);
-			}
-		});
-	} else {
+	//only one building TTCK
+	var building = world.buildingList.get_Item(0);
+	util.setTimeout(function () {
+		level.change(building);
 		util.setTimeout(function () {
-			level.change(building);
-			util.setTimeout(function () {
-				var floor_index = get_floor_by_name(building_name, sensorObj.getProperty("location"));
-				var floor = building.planList.get_Item(floor_index);
-				level.change(floor);
-			}, 500);
+			var floor_index = get_floor_by_objname(sensorObj.getProperty("location"));
+			var floor = building.planList.get_Item(floor_index);
+			level.change(floor);
 		}, 500);
-	}
+	}, 100);
+
 	//show nearby camera
 	var tmpArray = string.split(sensorObj.getProperty('camStr'), "_");
 	for (var i = 0; i < array.count(tmpArray); i++) {
@@ -179,28 +136,35 @@ function remove_all_gas_alarm() {
 		}
 		table.remove(T_Fly_List, item);
 	}
+	table.clear(T_Live_Gas_Alarm);
 }
 
 function update_fire_alarm_table() {
 	foreach(var item in vpairs(table.keys(T_Live_Fire_Alarm))) {
-		if (string.length(T_Live_Fire_Alarm[item]) > 1) {
+		if (string.contains(T_Live_Fire_Alarm[item], "fire")) {
 			var fireObj = object.find(item);
 			fireObj.addProperty("name", item);
 			var t = string.split(T_Live_Fire_Alarm[item], "|");
 			fireObj.addProperty("occurance", t[0]);
 			fireObj.addProperty("name", item);
-			fireObj.addProperty("location", t[2]);
-			fireObj.addProperty("camStr", t[3]);
+			fireObj.addProperty("location", t[3]);
+			fireObj.addProperty("tranfer", t[2]);
+			fireObj.addProperty("camStr", t[4]);
 			fireObj.addProperty("source", "fire");
 			util.setTimeout(function () {
 				show_banner_and_effect(fireObj);
 				fireObj.setColorFlash(true, Color.red, 2.5);
-				if (table.containskey(T_Fly_List, fireObj.getProperty("name")) == false) {
-					fly_to_sensor_level(fireObj);
-					T_Fly_List[fireObj.getProperty("name")] = fireObj;
-				}
 			}, 1000);
-
+			//check if have flied once
+			if (table.containskey(T_Fly_List, fireObj.getProperty("name")) == false) {
+				fly_to_sensor_level(fireObj);
+				T_Fly_List[fireObj.getProperty("name")] = fireObj;
+			}
+		} else {
+			//handle recovery fire alarms
+			table.remove(T_Live_Fire_Alarm, item);
+			var fireObj = object.find(item);
+			fireObj.setColorFlash(false);
 		}
 	}
 }
@@ -210,23 +174,20 @@ function update_gas_alarm_table(flyObjString) {
 		if (string.length(T_Live_Gas_Alarm[item]) > 1) {
 			var gasObj = object.find(item);
 			var t = string.split(T_Live_Gas_Alarm[item], "|");
-			gasObj.addProperty("location", t[2]);
 			gasObj.addProperty("name", item);
 			gasObj.addProperty("occurance", t[0]);
-			gasObj.addProperty("camStr", t[3]);
+			gasObj.addProperty("location", t[2]);
 			gasObj.addProperty("source", "gas");
+			gasObj.addProperty("camStr", t[3]);
 			util.setTimeout(function () {
 				gasObj.setColorFlash(true, Color.red, 2.5);
 				show_banner_and_effect(gasObj);
-				T_Live_Gas_Alarm[gasObj.getProperty("name")] = gasObj;
-				///////////////////////////////////////////////////////////////
 				//check if have flied once and only fly to first gas sensor
-				//////////////////////////////////////////////////////////////
-				var if_fly = string.contains(flyObjString, gasObj.getProperty("name"));
-				if (table.containskey(T_Fly_List, gasObj.getProperty("name")) == false && if_fly == true) {
-					fly_to_sensor_level(gasObj);
-					T_Fly_List[gasObj.getProperty("name")] = gasObj;
-				}
+				var if_fly = string.contains(flyObjString, gasObj.getProperty("name"))
+					if (table.containskey(T_Fly_List, gasObj.getProperty("name")) == false && if_fly == true) {
+						fly_to_sensor_level(gasObj);
+						T_Fly_List[gasObj.getProperty("name")] = gasObj;
+					}
 			}, 1000);
 
 		}
@@ -250,8 +211,9 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 								rs = string.trim(rs);
 								var msgArray = string.split(rs, "#");
 								for (var i = 0; i < array.count(msgArray); i++) {
+									//split and save to live event table
 									tmpArray = string.split(msgArray[i], "|");
-									T_Live_Fire_Alarm[tmpArray[1]] = msgArray[i];
+									T_Live_Fire_Alarm[tmpArray[3]] = msgArray[i];
 								}
 								update_fire_alarm_table();
 							}
@@ -270,11 +232,13 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 							if (string.length(rs) > 10) {
 								rs = string.trim(rs);
 								var msgArray = string.split(rs, "#");
-								for (var i = 0; i < array.count(msgArray); i++) {
-									var tmpArray = string.split(msgArray[i], "|");
-									T_Live_Gas_Alarm[tmpArray[1]] = msgArray[i];
+								if (array.count(msgArray) > 0) {
+									for (var i = 0; i < array.count(msgArray); i++) {
+										tmpArray = string.split(msgArray[i], "|");
+										T_Live_Gas_Alarm[tmpArray[1]] = msgArray[i];
+									}
+									update_gas_alarm_table(msgArray[0]);
 								}
-								update_gas_alarm_table(msgArray[0]);
 							} else {
 								//no gas alarms, clear alarm array
 								remove_all_gas_alarm();
