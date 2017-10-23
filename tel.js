@@ -8,6 +8,7 @@ var T_Live_Fire_Alarm = {};
 var T_Live_Gas_Alarm = {};
 var CURRENT_LEVEL = 'world';
 var BASE_URL = "http://192.168.86.24:9006/";
+//var BASE_URL = "http://192.168.86.24:9006/";
 var T_Banner_List = {};
 var T_Fly_List = {};
 var T_Fire_List = {};
@@ -287,11 +288,5 @@ gui.createButton("Reset", Rect(40, 260, 60, 30), function () {
 		}
 	});
 	gui.destroy(objSign);
-	if (F_fireObject != null) {
-		F_fireObject.destroy();
-	}
-	if (F_smokeObject != null) {
-		F_smokeObject.destroy();
-	}
 	objSign = gui.createLabel("<color=red>IDLE</color>", Rect(5, 38, 120, 30));
 });
