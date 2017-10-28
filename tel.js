@@ -13,7 +13,7 @@ var T_Banner_List = {};
 var T_Fly_List = {};
 var T_Fire_List = {};
 var T_Gas_List = {};
-var SHOW_GAS = true;
+var SHOW_GAS = false;
 var SHOW_FIRE = true;
 
 // create listenning sign
@@ -162,9 +162,7 @@ function update_fire_alarm_table() {
 			}
 		} else {
 			//handle recovery fire alarms
-			table.remove(T_Live_Fire_Alarm, item);
-			var fireObj = object.find(item);
-			fireObj.setColorFlash(false);
+			remove_recovery_fire_alarm(item);
 		}
 	}
 }
@@ -189,7 +187,38 @@ function update_gas_alarm_table(flyObjString) {
 						T_Fly_List[gasObj.getProperty("name")] = gasObj;
 					}
 			}, 1000);
+		}
+	}
+}
 
+function remove_recovery_fire_alarm(item) {
+	table.remove(T_Live_Fire_Alarm, item);
+	table.remove(T_Fly_List, item);
+	destory_element_by_name(T_Banner_List, item);
+	destory_element_by_name(T_Fire_List, item);
+	var obj = object.find(item);
+	obj.setColorFlash(false);
+}
+
+function remove_recovery_gas_alarm(msgArray) {
+	foreach(var item in vpairs(table.keys(T_Live_Gas_Alarm))) {
+		var recovery = true;
+		for (var i = 0; i < array.count(msgArray); i++) {
+			if (string.contains(msgArray[i], item)) {
+				recovery = false;
+			}
+		}
+		if (recovery == true) {
+			var messageObj = gui.createLabel("<color=red>" + item + " recoveried!</color>", Rect(150, 38, 200, 30));
+			table.remove(T_Live_Gas_Alarm, item);
+			table.remove(T_Fly_List, item);
+			util.setTimeout(function () {
+				gui.destroy(messageObj);
+				destory_element_by_name(T_Banner_List, item);
+				destory_element_by_name(T_Gas_List, item);
+				var obj = object.find(item);
+				obj.setColorFlash(false);
+			}, 3000);
 		}
 	}
 }
@@ -232,6 +261,7 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 							if (string.length(rs) > 10) {
 								rs = string.trim(rs);
 								var msgArray = string.split(rs, "#");
+								remove_recovery_gas_alarm(msgArray);
 								if (array.count(msgArray) > 0) {
 									for (var i = 0; i < array.count(msgArray); i++) {
 										tmpArray = string.split(msgArray[i], "|");
@@ -263,10 +293,35 @@ function destoy_elements(T_Object_List) {
 
 }
 
+function destory_element_by_name(T_Object_List, objName) {
+	foreach(var item in vpairs(table.keys(T_Object_List))) {
+		if (item == objName && T_Object_List[item] != null) {
+			T_Object_List[item].destroy();
+			table.remove(T_Object_List, item);
+		}
+	}
+}
+
+function stop_all_flash() {
+	foreach(var item in vpairs(table.keys(T_Live_Fire_Alarm))) {
+		var obj = object.find(item);
+		if (obj != null) {
+			obj.setColorFlash(false);
+		}
+	}
+	foreach(var item in vpairs(table.keys(T_Live_Gas_Alarm))) {
+		var obj = object.find(item);
+		if (obj != null) {
+			obj.setColorFlash(false);
+		}
+	}
+}
+
 gui.createButton("Reset", Rect(40, 260, 60, 30), function () {
 	util.clearAllTimers();
 	selector.ClearSelection();
 	//remove all existing banners and effects
+	stop_all_flash();
 	destoy_elements(T_Banner_List);
 	destoy_elements(T_Fire_List);
 	destoy_elements(T_Gas_List);
