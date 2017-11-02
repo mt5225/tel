@@ -13,7 +13,7 @@ var T_Banner_List = {};
 var T_Fly_List = {};
 var T_Fire_List = {};
 var T_Gas_List = {};
-var SHOW_GAS = false;
+var SHOW_GAS = true;
 var SHOW_FIRE = true;
 
 // create listenning sign
@@ -129,14 +129,37 @@ function open_camera_live_feed(objId) {
 function remove_all_gas_alarm() {
 	foreach(var item in vpairs(table.keys(T_Live_Gas_Alarm))) {
 		var obj = object.find(item);
+		if (obj != null) {
+			obj.setColorFlash(false);
+		}
+		if (T_Banner_List[item] != null) {
+			T_Banner_List[item].destroy();
+			table.remove(T_Banner_List, item);
+		}
+		if (T_Gas_List[item] != null) {
+			T_Gas_List[item].destroy();
+			table.remove(T_Gas_List, item);
+		}
+		table.remove(T_Fly_List, item);
+	}
+	table.clear(T_Live_Gas_Alarm);
+}
+
+function remove_all_fire_alarm() {
+	foreach(var item in vpairs(table.keys(T_Live_Fire_Alarm))) {
+		var obj = object.find(item);
 		obj.setColorFlash(false);
 		if (T_Banner_List[item] != null) {
 			T_Banner_List[item].destroy();
 			table.remove(T_Banner_List, item);
 		}
+		if (T_Fire_List[item] != null) {
+			T_Fire_List[item].destroy();
+			table.remove(T_Fire_List, item);
+		}
 		table.remove(T_Fly_List, item);
 	}
-	table.clear(T_Live_Gas_Alarm);
+	table.clear(T_Live_Fire_Alarm);
 }
 
 function update_fire_alarm_table() {
@@ -197,7 +220,9 @@ function remove_recovery_fire_alarm(item) {
 	destory_element_by_name(T_Banner_List, item);
 	destory_element_by_name(T_Fire_List, item);
 	var obj = object.find(item);
-	obj.setColorFlash(false);
+	if (obj != null) {
+		obj.setColorFlash(false)
+	}
 }
 
 function remove_recovery_gas_alarm(msgArray) {
@@ -217,7 +242,9 @@ function remove_recovery_gas_alarm(msgArray) {
 				destory_element_by_name(T_Banner_List, item);
 				destory_element_by_name(T_Gas_List, item);
 				var obj = object.find(item);
-				obj.setColorFlash(false);
+				if (obj != null) {
+					obj.setColorFlash(false);
+				}
 			}, 3000);
 		}
 	}
@@ -245,7 +272,10 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 									T_Live_Fire_Alarm[tmpArray[3]] = msgArray[i];
 								}
 								update_fire_alarm_table();
+							} else {
+								remove_all_fire_alarm();
 							}
+
 						},
 						"error": function (t) {
 							print(t);
@@ -280,7 +310,8 @@ gui.createButton("Listen", Rect(40, 220, 60, 30), function () {
 					});
 				}
 			}
-		}, 3000);
+		},
+			3000);
 	}
 });
 
