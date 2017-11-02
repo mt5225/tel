@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sqlite3
 import logging
+import sys
 from flask import Flask, jsonify
 from logging.handlers import RotatingFileHandler
 from flask_cors import CORS
@@ -80,7 +81,8 @@ if __name__ == '__main__':
     LOG_FILENAME = './tel_api_srv.log'
     formatter = logging.Formatter(
         "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
-    handler = RotatingFileHandler(LOG_FILENAME, maxBytes=10000000, backupCount=5)
+    #handler = RotatingFileHandler(LOG_FILENAME, maxBytes=10000000, backupCount=5)
+    handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(formatter)
     app.logger.addHandler(handler)
