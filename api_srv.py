@@ -9,7 +9,8 @@ from flask_sqlalchemy import SQLAlchemy
 from types import NoneType
 import pandas as pd
 
-DB_URL = 'mysql+mysqldb://root:root@192.168.33.10/alarm_momoda'
+#DB_URL = 'mysql+mysqldb://root:root@192.168.33.10/alarm_momoda'
+DB_URL = 'mysql+pymysql://root:1234@192.168.0.250/alarm_momoda'
 
 # innit flash app and backend db connection
 app = Flask(__name__, static_url_path='', static_folder='static')
