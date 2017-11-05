@@ -9,15 +9,17 @@ from flask_sqlalchemy import SQLAlchemy
 from types import NoneType
 import pandas as pd
 
-DB_URL = 'mysql+mysqldb://root:root@192.168.33.10/alarm_momoda'
+#DB_URL = 'mysql+mysqldb://root:root@192.168.33.10/alarm_momoda'
+DB_URL = 'mysql+pymysql://root:1234@192.168.0.250/alarm_momoda'
 
 # innit flash app and backend db connection
 app = Flask(__name__, static_url_path='', static_folder='static')
-# fire db (sqlite3)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///telfire.db'
+# fire db (mysql)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'qlite:///telfire.db'
 # gas db (mysql)
 app.config['SQLALCHEMY_BINDS'] = {
     'gas': DB_URL,
+    'fire':DB_URL
 }
 db = SQLAlchemy(app)
 
@@ -48,7 +50,8 @@ def index():
 @app.route('/fire', methods=['GET'])
 def fire():
     msg_array = []
-    result = db.engine.execute("SELECT * FROM alarms ORDER BY ROWID")
+    engine = db.get_engine(bind='fire')
+    result = engine.execute("SELECT occurrences, msg, repeater, sensor FROM fire_alarms")
     for row in result:
         cctv_str = get_cctvs_by_fire_name(row[3])
         msg_array.append("%s|%s|%s|%s|%s"%(row[0], row[1], row[2], row[3], cctv_str))
@@ -70,6 +73,8 @@ def gas():
             location = "TTCK_1F"
             msg_array.append("%s|%s|%s|%s"%(row[4],row[1],location,cctv_str))
     msg_short = ""
+	#sort the array by timestamp
+    msg_array.sort(reverse=True)
     if msg_array:
         msg_short = '#'.join(msg_array)
     else:

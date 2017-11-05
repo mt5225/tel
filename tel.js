@@ -7,7 +7,7 @@ var LISTENING = false;
 var T_Live_Fire_Alarm = {};
 var T_Live_Gas_Alarm = {};
 var CURRENT_LEVEL = 'world';
-var BASE_URL = "http://192.168.86.24:9006/";
+var BASE_URL = "http://192.168.0.250:9006/";
 //var BASE_URL = "http://192.168.86.24:9006/";
 var T_Banner_List = {};
 var T_Fly_List = {};
@@ -215,13 +215,14 @@ function update_gas_alarm_table(flyObjString) {
 }
 
 function remove_recovery_fire_alarm(item) {
-	table.remove(T_Live_Fire_Alarm, item);
-	table.remove(T_Fly_List, item);
-	destory_element_by_name(T_Banner_List, item);
-	destory_element_by_name(T_Fire_List, item);
-	var obj = object.find(item);
-	if (obj != null) {
-		obj.setColorFlash(false)
+	if(table.containskey(T_Fly_List, item)) {
+		table.remove(T_Fly_List, item);
+		destory_element_by_name(T_Banner_List, item);
+		destory_element_by_name(T_Fire_List, item);
+		var obj = object.find(item);
+		if (obj != null) {
+			obj.setColorFlash(false)
+		}
 	}
 }
 

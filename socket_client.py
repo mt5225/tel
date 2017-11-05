@@ -10,6 +10,7 @@ from time import gmtime, strftime
 from logging.handlers import RotatingFileHandler
 from apscheduler.schedulers.background import BackgroundScheduler
 import pandas as pd
+import MySQLdb
 
 # create logger
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -19,8 +20,8 @@ handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s -
 logger.addHandler(handler)
 
 # global settings
-#_HOST = '192.168.0.150'
-_HOST = 'localhost'
+_HOST = '192.168.0.150'
+#_HOST = 'localhost'
 _PORT = 1470
 # all time value are in seconds
 _RECV_TIMEOUT = 1 * 60
@@ -30,6 +31,11 @@ _CLEAN_DB_PERIOD = 60 * 60
 # init lookup map
 _LOOKUP = pd.read_csv('fire_map.csv', dtype={'repeater_id': object})
 logger.debug(_LOOKUP)
+
+db = MySQLdb.connect(host="192.168.0.250",  # your host 
+                     user="root",       # username
+                     passwd="1234",     # password
+                     db="alarm_momoda")   # name of the database
 
 def get_sensor_by_repeater(repeater):
     ''' find sensor id by repeater by mapping file
@@ -69,18 +75,14 @@ def save_to_db(payload):
     ''' save message to db
     '''
     try:
-        conn = sqlite3.connect('telfire.db')
-        cur = conn.cursor()
+        cur = db.cursor()
         for item in payload:
             record = (item['occurrences'], item['msg'], item['repeater'], item['sensor'])
-            cur.execute("INSERT INTO alarms VALUES(?,?,?,?)", record)
-        conn.commit()
-    except sqlite3.Error, e:
+            cur.execute("INSERT INTO fire_alarms (occurrences, msg, repeater, sensor) VALUES(%s,%s,%s,%s)", record)
+        db.commit()
+    except e:
         logging.error("Error %s:" % e.args[0])
         sys.exit(1)
-    finally:
-        if conn:
-            conn.close()
 
 def init_db():
     SQL = '''
@@ -128,11 +130,11 @@ def fetch_data():
 if __name__ == '__main__':
    ''' argument: clearn up event db in N minutes
    '''
-   init_db()
+   #init_db()
    scheduler = BackgroundScheduler()
    start_time = datetime.datetime.now() + datetime.timedelta(0,3)
    # add clean db job
-   scheduler.add_job(remove_old_event, 'interval', seconds=_CLEAN_DB_PERIOD, start_date=start_time)
+   # scheduler.add_job(remove_old_event, 'interval', seconds=_CLEAN_DB_PERIOD, start_date=start_time)
    # add fetch data job
    scheduler.add_job(fetch_data, 'interval', seconds=_SOCK_POLLING, start_date=start_time)
    # start job scheduler
