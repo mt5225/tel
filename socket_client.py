@@ -32,9 +32,14 @@ _CLEAN_DB_PERIOD = 60 * 60
 _LOOKUP = pd.read_csv('fire_map.csv', dtype={'repeater_id': object})
 logger.debug(_LOOKUP)
 
-db = MySQLdb.connect(host="192.168.0.250",  # your host 
+# db = MySQLdb.connect(host="192.168.0.250",  # your host 
+#                      user="root",       # username
+#                      passwd="1234",     # password
+#                      db="alarm_momoda")   # name of the database
+
+db = MySQLdb.connect(host="192.168.33.10",  # your host 
                      user="root",       # username
-                     passwd="1234",     # password
+                     passwd="root",     # password
                      db="alarm_momoda")   # name of the database
 
 def get_sensor_by_repeater(repeater):
