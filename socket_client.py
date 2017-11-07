@@ -12,13 +12,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import pandas as pd
 import MySQLdb
 
-# create logger
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-handler = RotatingFileHandler('fetchdata.log', maxBytes=10000000, backupCount=5)
-handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-logger.addHandler(handler)
-
 # global settings
 #_HOST = '192.168.0.150'
 _HOST = 'localhost'
@@ -27,11 +20,6 @@ _PORT = 1470
 _RECV_TIMEOUT = 1 * 60
 _SOCK_POLLING = _RECV_TIMEOUT + 1
 _CLEAN_DB_PERIOD = 60 * 60
-
-# init lookup map
-_LOOKUP = pd.read_csv('fire_map.csv', dtype={'repeater_id': object})
-logger.debug(_LOOKUP)
-
 # _DB = MySQLdb.connect(host="192.168.0.250",  # your host 
 #                      user="root",       # username
 #                      passwd="1234",     # password
@@ -41,6 +29,17 @@ _DB = MySQLdb.connect(host="192.168.33.10",  # your host
                      user="root",       # username
                      passwd="root",     # password
                      db="alarm_momoda")   # name of the database
+
+# init lookup map
+_LOOKUP = pd.read_csv('fire_map.csv', dtype={'repeater_id': object})
+logger.debug(_LOOKUP)
+
+# create logger
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+handler = RotatingFileHandler('fetchdata.log', maxBytes=10000000, backupCount=5)
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(handler)
 
 def get_sensor_by_repeater(repeater):
     ''' find sensor id by repeater by mapping file

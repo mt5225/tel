@@ -86,7 +86,6 @@ if __name__ == '__main__':
     LOG_FILENAME = './tel_api_srv.log'
     formatter = logging.Formatter(
         "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
-    #handler = RotatingFileHandler(LOG_FILENAME, maxBytes=10000000, backupCount=5)
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(logging.INFO)
     handler.setFormatter(formatter)
