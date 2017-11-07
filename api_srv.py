@@ -8,20 +8,19 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from types import NoneType
 import pandas as pd
+from time import gmtime, strftime
 
 DB_URL = 'mysql+mysqldb://root:root@192.168.33.10/alarm_momoda'
 #DB_URL = 'mysql+pymysql://root:1234@192.168.0.250/alarm_momoda'
 
 # innit flash app and backend db connection
 app = Flask(__name__, static_url_path='', static_folder='static')
-# fire db (mysql)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'qlite:///telfire.db'
-# gas db (mysql)
 app.config['SQLALCHEMY_BINDS'] = {
     'gas': DB_URL,
     'fire':DB_URL
 }
-db = SQLAlchemy(app)
+
+_DB = SQLAlchemy(app)
 
 # init lookup map
 _GAS_LOOKUP = pd.read_csv('gas_cctv_mapping.csv')
@@ -50,8 +49,9 @@ def index():
 @app.route('/fire', methods=['GET'])
 def fire():
     msg_array = []
-    engine = db.get_engine(bind='fire')
-    result = engine.execute("SELECT occurrences, msg, repeater, sensor FROM fire_alarms")
+    engine = _DB.get_engine(bind='fire')
+    today_str = strftime("%Y-%m-%d", gmtime())
+    result = engine.execute("SELECT occurrences, msg, repeater, sensor FROM fire_alarms where locate('%s', occurrences)>0" % today_str)
     for row in result:
         cctv_str = get_cctvs_by_fire_name(row[3])
         msg_array.append("%s|%s|%s|%s|%s"%(row[0], row[1], row[2], row[3], cctv_str))
@@ -64,7 +64,7 @@ def gas():
     msg_array = []
     query_str = 'select * from ( select * from alarm order by id desc) x group by tag'
     # query_str = 'select * from alarm'
-    engine = db.get_engine(bind='gas')
+    engine = _DB.get_engine(bind='gas')
     result = engine.execute(query_str)
     for row in result:
         if row[2] == 1 or row[3] == 1:
@@ -88,7 +88,7 @@ if __name__ == '__main__':
         "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
     #handler = RotatingFileHandler(LOG_FILENAME, maxBytes=10000000, backupCount=5)
     handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
+    handler.setLevel(logging.INFO)
     handler.setFormatter(formatter)
     app.logger.addHandler(handler)
     CORS(app)

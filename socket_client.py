@@ -20,8 +20,8 @@ handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s -
 logger.addHandler(handler)
 
 # global settings
-_HOST = '192.168.0.150'
-#_HOST = 'localhost'
+#_HOST = '192.168.0.150'
+_HOST = 'localhost'
 _PORT = 1470
 # all time value are in seconds
 _RECV_TIMEOUT = 1 * 60
@@ -32,12 +32,12 @@ _CLEAN_DB_PERIOD = 60 * 60
 _LOOKUP = pd.read_csv('fire_map.csv', dtype={'repeater_id': object})
 logger.debug(_LOOKUP)
 
-# db = MySQLdb.connect(host="192.168.0.250",  # your host 
+# _DB = MySQLdb.connect(host="192.168.0.250",  # your host 
 #                      user="root",       # username
 #                      passwd="1234",     # password
 #                      db="alarm_momoda")   # name of the database
 
-db = MySQLdb.connect(host="192.168.33.10",  # your host 
+_DB = MySQLdb.connect(host="192.168.33.10",  # your host 
                      user="root",       # username
                      passwd="root",     # password
                      db="alarm_momoda")   # name of the database
@@ -80,35 +80,14 @@ def save_to_db(payload):
     ''' save message to db
     '''
     try:
-        cur = db.cursor()
+        cur = _DB.cursor()
         for item in payload:
             record = (item['occurrences'], item['msg'], item['repeater'], item['sensor'])
             cur.execute("INSERT INTO fire_alarms (occurrences, msg, repeater, sensor) VALUES(%s,%s,%s,%s)", record)
-        db.commit()
+        _DB.commit()
     except e:
         logging.error("Error %s:" % e.args[0])
         sys.exit(1)
-
-def init_db():
-    SQL = '''
-        CREATE TABLE IF NOT EXISTS alarms (
-            occurrences varchar(64),
-            msg varchar(64),
-            repeater varchar(64),
-            sensor varchar(64)
-        );
-    '''
-    with sqlite3.connect('telfire.db') as conn:
-        cursor = conn.cursor()
-        cursor.execute(SQL)
-
-def remove_old_event():
-    ''' remove all events from alarms table
-    '''
-    logger.debug('clean old event')
-    with sqlite3.connect('telfire.db') as conn:
-        cursor = conn.cursor()
-        cursor.execute('DELETE from alarms')
 
 def fetch_data():
     ''' fetch data from socket server
@@ -138,8 +117,6 @@ if __name__ == '__main__':
    #init_db()
    scheduler = BackgroundScheduler()
    start_time = datetime.datetime.now() + datetime.timedelta(0,3)
-   # add clean db job
-   # scheduler.add_job(remove_old_event, 'interval', seconds=_CLEAN_DB_PERIOD, start_date=start_time)
    # add fetch data job
    scheduler.add_job(fetch_data, 'interval', seconds=_SOCK_POLLING, start_date=start_time)
    # start job scheduler
