@@ -84,7 +84,7 @@ def save_to_db(payload):
             record = (item['occurrences'], item['msg'], item['repeater'], item['sensor'])
             cur.execute("INSERT INTO fire_alarms (occurrences, msg, repeater, sensor) VALUES(%s,%s,%s,%s)", record)
         _DB.commit()
-    except e:
+    except MySQLdb.Error, e:
         logging.error("Error %s:" % e.args[0])
         sys.exit(1)
 

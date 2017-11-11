@@ -9,6 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from types import NoneType
 import pandas as pd
 from time import gmtime, strftime
+from datetime import datetime, timedelta
 
 DB_URL = 'mysql+mysqldb://root:root@192.168.33.10/alarm_momoda'
 #DB_URL = 'mysql+pymysql://root:1234@192.168.0.250/alarm_momoda'
@@ -30,17 +31,23 @@ def get_cctvs_by_tagname(tagname):
     ''' find sensor id by repeater by mapping file
     '''
     df = _GAS_LOOKUP.loc[_GAS_LOOKUP['tag'] == tagname]
-    app.logger.debug(df.iloc[0])
-    cctv_str = "%s_%s" % (df.iloc[0].CCTV1, df.iloc[0].CCTV2)
-    return cctv_str
+    if(len(df.index > 0)):
+        app.logger.debug(df.iloc[0])
+        cctv_str = "%s_%s" % (df.iloc[0].CCTV1, df.iloc[0].CCTV2)
+        return cctv_str
+    else:
+        return ""
 
 def get_cctvs_by_fire_name(name):
     ''' find sensor id by repeater by mapping file
     '''
     df = _FIRE_LOOKUP.loc[_FIRE_LOOKUP['ID'] == name]
-    app.logger.debug(df.iloc[0])
-    cctv_str = "%s_%s" % (df.iloc[0].CCTV1, df.iloc[0].CCTV2)
-    return cctv_str
+    if(len(df.index > 0)):
+        app.logger.debug(df.iloc[0])
+        cctv_str = "%s_%s" % (df.iloc[0].CCTV1, df.iloc[0].CCTV2)
+        return cctv_str
+    else:
+        return ""
 
 @app.route('/')
 def index():
@@ -50,11 +57,13 @@ def index():
 def fire():
     msg_array = []
     engine = _DB.get_engine(bind='fire')
-    today_str = strftime("%Y-%m-%d", gmtime())
-    result = engine.execute("SELECT occurrences, msg, repeater, sensor FROM fire_alarms where locate('%s', occurrences)>0" % today_str)
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    result = engine.execute("SELECT occurrences, msg, repeater, sensor FROM fire_alarms where locate('%s', occurrences)>0 OR locate('%s', occurrences)>0" % (today_str, yesterday_str))
     for row in result:
         cctv_str = get_cctvs_by_fire_name(row[3])
-        msg_array.append("%s|%s|%s|%s|%s"%(row[0], row[1], row[2], row[3], cctv_str))
+        if cctv_str is not "":
+            msg_array.append("%s|%s|%s|%s|%s"%(row[0], row[1], row[2], row[3], cctv_str))
     app.logger.debug(msg_array)
     msg_short = '#'.join(msg_array) if msg_array > 0 else ""
     return msg_short, 200
@@ -71,7 +80,8 @@ def gas():
             app.logger.info("alarm from %s" % row[1])
             cctv_str = get_cctvs_by_tagname(row[1])
             location = "TTCK_1F"
-            msg_array.append("%s|%s|%s|%s"%(row[4],row[1],location,cctv_str))
+            if cctv_str is not "":
+                msg_array.append("%s|%s|%s|%s"%(row[4],row[1],location,cctv_str))
     msg_short = ""
 	#sort the array by timestamp
     msg_array.sort(reverse=True)

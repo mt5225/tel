@@ -10,18 +10,16 @@ CREATE TABLE IF NOT EXISTS fire_alarms (
     primary key (id)
 );
 
-insert into fire_alarms (occurrences, msg, repeater, sensor) values ('2017-10-15 05:31:38', 'fire', '019', '3F-6');
-insert into fire_alarms (occurrences, msg, repeater, sensor) values ('2017-10-15 05:31:38', 'recover', '019', '3F-6');
+insert into fire_alarms (occurrences, msg, repeater, sensor) values ('2017-11-10 05:31:38', 'fire', '019', '3F-6');
+insert into fire_alarms (occurrences, msg, repeater, sensor) values ('2017-11-10 05:31:38', 'recover', '019', '3F-6');
+
+insert into fire_alarms (occurrences, msg, repeater, sensor) values ('2017-11-11 05:31:38', 'fire', '019', '1F-1');
+insert into fire_alarms (occurrences, msg, repeater, sensor) values ('2017-11-10 05:31:38', 'recover', '019', '1F-1');
 
 
 
-insert into fire_alarms (occurrences, msg, repeater, sensor) values ('2017-10-15 05:31:38', 'fire', '019', '1F-1');
-insert into fire_alarms (occurrences, msg, repeater, sensor) values ('2017-10-15 05:31:38', 'recover', '019', '1F-1');
-
-
-
-insert into fire_alarms (occurrences, msg, repeater, sensor) values ('2017-10-15 05:31:38', 'fire', '019', '2F-2');
-insert into fire_alarms (occurrences, msg, repeater, sensor) values ('2017-10-15 05:31:38', 'recover', '019', '2F-2');
+insert into fire_alarms (occurrences, msg, repeater, sensor) values ('2017-11-10 05:31:38', 'fire', '019', '2F-2');
+insert into fire_alarms (occurrences, msg, repeater, sensor) values ('2017-11-10 05:31:38', 'recover', '019', '2F-2');
 
 -- ----------------
 -- for gas alarm
