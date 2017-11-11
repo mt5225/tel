@@ -51,8 +51,7 @@ function show_banner_and_effect(obj) {
 				var banner_ui = gui.create(res);
 				var offsetY = obj.size.y + 0.2;
 				banner_ui.setObject(obj, Vector3(0, offsetY, 0));
-				var occr = string.split(obj.getProperty("occurance"), " ");
-				var msg = "<size=12>" + occr[1] + "\n" + obj.getProperty("name") + "</size>";
+				var msg = "<size=9>" + obj.getProperty("occurance") + "</size>\n<size=11>" + obj.getProperty("name") + "</size>";
 				banner_ui.setText("Button/Text", msg);
 				util.downloadTexture({
 					"url": BASE_URL + "demo_panel_001.png",
