@@ -20,6 +20,7 @@ app.config['SQLALCHEMY_BINDS'] = {
     'gas': DB_URL,
     'fire':DB_URL
 }
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 _DB = SQLAlchemy(app)
 
